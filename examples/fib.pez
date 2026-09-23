@@ -1,0 +1,27 @@
+; computes fib(20) into r0
+    PUSHI 20
+    POP  r2    ; r2 = N
+    PUSHI 0
+    POP  r0    ; r0 = fib(i)
+    PUSHI 1
+    POP  r1    ; r1 = fib(i+1)
+loop:
+    PUSH r2
+    PUSHI 0
+    CMP
+    JIEZ end   ; if r2 == 0, done
+    PUSH r0
+    PUSH r1
+    ADD
+    POP  r3    ; r3 = r0 + r1
+    PUSH r1
+    POP  r0    ; r0 = r1
+    PUSH r3
+    POP  r1    ; r1 = r3
+    PUSHI 1
+    PUSH r2
+    SUB
+    POP  r2    ; r2 = r2 - 1
+    JMP  loop
+end:
+    HALT
