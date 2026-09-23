@@ -1,0 +1,36 @@
+; computes N! recursively into r0
+main:
+    PUSHI 10
+    POP  r1        ; r1 = n
+    CALL factorial
+    PUSH r2
+    POP  r0         ; r0 = n!
+    HALT
+
+factorial:
+    ; input: r1 = n, output: r2 = n!
+    PUSHI 1
+    PUSH r1
+    CMP             ; a=n(top), b=1 -> n - 1
+    JIGZ recurse    ; if n - 1 > 0, i.e. n > 1, recurse
+
+    PUSHI 1
+    POP  r2         ; base case: 0! = 1! = 1
+    RET
+
+recurse:
+    PUSH r1         ; save n (r1 gets overwritten by the recursive call)
+
+    PUSHI 1
+    PUSH r1
+    SUB             ; a=n(top), b=1 -> n - 1
+    POP  r1         ; r1 = n - 1
+
+    CALL factorial  ; r2 = (n-1)!
+
+    POP  r1         ; restore n
+    PUSH r1
+    PUSH r2
+    MUL             ; n * (n-1)!
+    POP  r2         ; r2 = n!
+    RET
