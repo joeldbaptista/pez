@@ -1,9 +1,14 @@
 # Pez - a stack machine
 
-I have played with stack machines [here](https://github.com/joeldbaptista/eel).
-In this project we implement a stack machine in just C, for the fun of it. I have
-also used other references, such as "Crafting Interpreters" by R. Nystrom, which
-implements a stack machine in the second part of the book.
+I have played with stack machines [here](https://github.com/joeldbaptista/eel). 
+At that time the goal was to develop a scripting language using a [PEG](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
+THe virtual machine component was then responsible to execute the code that had been
+compiled, and converted in something a virtual machine could execute. Right after, I have
+read "Crafting Interpreters" by R. Nystrom, which implements a stack machine in the second 
+part of the book. But have never add the opportunity to actually implement something.
+At the time, I left a note to my self for a future project. This is it. 
+
+In this project we implement a stack machine with just C, for the fun of it. 
 
 ## Scope
 
