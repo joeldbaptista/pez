@@ -34,6 +34,7 @@ static void splitinstr(char *s, char **mnem, char **operand);
 static int findop(const char *inpath, int lineno, const char *name);
 static int parsereg(const char *inpath, int lineno, const char *s);
 static int64_t parseimm(const char *inpath, int lineno, const char *s);
+static int findsym(const char *name, int64_t *addr);
 static void addsym(const char *inpath, int lineno, const char *name, int64_t addr);
 static int64_t symaddr(const char *inpath, int lineno, const char *name);
 static void assemble(const char *inpath, const char *outpath);
@@ -50,6 +51,8 @@ static const struct {
 	{"POP",   OP_POP,   OPR_REG},
 	{"PUSHI", OP_PUSHI, OPR_IMM},
 	{"JMP",   OP_JMP,   OPR_LABEL},
+	{"CALL",  OP_CALL,  OPR_LABEL},
+	{"RET",   OP_RET,   OPR_NONE},
 	{"CMP",   OP_CMP,   OPR_NONE},
 	{"JIEZ",  OP_JIEZ,  OPR_LABEL},
 	{"JIGZ",  OP_JIGZ,  OPR_LABEL},
@@ -204,14 +207,28 @@ parseimm(const char *inpath, int lineno, const char *s)
 	return (int64_t)v;
 }
 
-static void
-addsym(const char *inpath, int lineno, const char *name, int64_t addr)
+static int
+findsym(const char *name, int64_t *addr)
 {
 	int i;
 
-	for (i = 0; i < nsym; i++)
-		if (strcmp(syms[i].name, name) == 0)
-			die("%s:%d: duplicate label '%s'", inpath, lineno, name);
+	for (i = 0; i < nsym; i++) {
+		if (strcmp(syms[i].name, name) == 0) {
+			*addr = syms[i].addr;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static void
+addsym(const char *inpath, int lineno, const char *name, int64_t addr)
+{
+	int64_t dummy;
+
+	if (findsym(name, &dummy))
+		die("%s:%d: duplicate label '%s'", inpath, lineno, name);
 
 	if (nsym >= MAXSYM)
 		die("%s:%d: too many labels (max %d)", inpath, lineno, MAXSYM);
@@ -226,14 +243,12 @@ addsym(const char *inpath, int lineno, const char *name, int64_t addr)
 static int64_t
 symaddr(const char *inpath, int lineno, const char *name)
 {
-	int i;
+	int64_t addr;
 
-	for (i = 0; i < nsym; i++)
-		if (strcmp(syms[i].name, name) == 0)
-			return syms[i].addr;
+	if (!findsym(name, &addr))
+		die("%s:%d: undefined label '%s'", inpath, lineno, name);
 
-	die("%s:%d: undefined label '%s'", inpath, lineno, name);
-	return 0; /* NOTREACHED */
+	return addr;
 }
 
 static void
@@ -242,7 +257,7 @@ assemble(const char *inpath, const char *outpath)
 	FILE *fp;
 	Header hdr;
 	Instr instrs[MAXLINES];
-	int64_t addr;
+	int64_t addr, entry;
 	int i, ninstr, opidx;
 	char buf[MAXLINE], *s, *mnem, *operand;
 
@@ -268,6 +283,9 @@ assemble(const char *inpath, const char *outpath)
 
 		addr++;
 	}
+
+	if (!findsym("main", &entry))
+		die("%s: missing required label 'main' (entry point)", inpath);
 
 	/* pass 2: parse instructions, resolving label references */
 	ninstr = 0;
@@ -311,6 +329,7 @@ assemble(const char *inpath, const char *outpath)
 
 	memcpy(hdr.magic, PEZ_MAGIC, 4);
 	hdr.ninstr = ninstr;
+	hdr.entry = (int32_t)entry;
 	if (fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
 		die("%s: write failed", outpath);
 

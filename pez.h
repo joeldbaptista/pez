@@ -10,6 +10,8 @@ typedef enum {
 	OP_POP,
 	OP_PUSHI,
 	OP_JMP,
+	OP_CALL,
+	OP_RET,
 	OP_CMP,
 	OP_JIEZ,
 	OP_JIGZ,
@@ -41,6 +43,7 @@ struct instr {
 typedef struct {
 	char    magic[4];  /* PEZ_MAGIC */
 	int32_t ninstr;    /* number of EncInstr records following */
+	int32_t entry;     /* instruction index where execution begins */
 } Header;
 
 typedef struct {

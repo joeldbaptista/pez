@@ -18,10 +18,10 @@ typedef struct {
 	int     pc;
 } Machine;
 
-static int loadprog(const char *inpath, Instr prog[], int max);
+static int loadprog(const char *inpath, Instr prog[], int max, int *entry);
 static void push(Machine *m, int64_t v);
 static int64_t pop(Machine *m);
-static void execute(const Instr *prog, int nprog, Machine *m);
+static void execute(const Instr *prog, int nprog, int entry, Machine *m);
 static void dumpstate(const char *outpath, const Machine *m);
 static void run(const char *inpath, const char *outpath);
 static void usage(void);
@@ -29,7 +29,7 @@ static void usage(void);
 char *argv0;
 
 static int
-loadprog(const char *inpath, Instr prog[], int max)
+loadprog(const char *inpath, Instr prog[], int max, int *entry)
 {
 	FILE *fp;
 	Header hdr;
@@ -45,6 +45,8 @@ loadprog(const char *inpath, Instr prog[], int max)
 		die("%s: bad magic (not a pez binary)", inpath);
 	if (hdr.ninstr < 0 || hdr.ninstr > max)
 		die("%s: invalid instruction count %d", inpath, hdr.ninstr);
+	if (hdr.entry < 0 || hdr.entry >= hdr.ninstr)
+		die("%s: invalid entry point %d", inpath, hdr.entry);
 
 	for (i = 0; i < hdr.ninstr; i++) {
 		if (fread(&e, sizeof(e), 1, fp) != 1)
@@ -60,6 +62,8 @@ loadprog(const char *inpath, Instr prog[], int max)
 	}
 
 	fclose(fp);
+
+	*entry = hdr.entry;
 
 	return hdr.ninstr;
 }
@@ -81,12 +85,12 @@ pop(Machine *m)
 }
 
 static void
-execute(const Instr *prog, int nprog, Machine *m)
+execute(const Instr *prog, int nprog, int entry, Machine *m)
 {
 	Instr in;
 	int64_t a, b;
 
-	m->pc = 0;
+	m->pc = entry;
 	for (;;) {
 		if (m->pc < 0 || m->pc >= nprog)
 			die("pc out of range: %d", m->pc);
@@ -111,6 +115,13 @@ execute(const Instr *prog, int nprog, Machine *m)
 			break;
 		case OP_JMP:
 			m->pc = (int)in.imm;
+			break;
+		case OP_CALL:
+			push(m, m->pc + 1);
+			m->pc = (int)in.imm;
+			break;
+		case OP_RET:
+			m->pc = (int)pop(m);
 			break;
 		case OP_CMP:
 			a = pop(m);
@@ -200,11 +211,11 @@ run(const char *inpath, const char *outpath)
 {
 	Instr prog[MAXINSTR];
 	Machine m;
-	int nprog;
+	int nprog, entry;
 
 	memset(&m, 0, sizeof(m));
-	nprog = loadprog(inpath, prog, MAXINSTR);
-	execute(prog, nprog, &m);
+	nprog = loadprog(inpath, prog, MAXINSTR, &entry);
+	execute(prog, nprog, entry, &m);
 	dumpstate(outpath, &m);
 }
 
