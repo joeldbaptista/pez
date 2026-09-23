@@ -1,4 +1,5 @@
 ; computes fib(20) into r0
+main:
     PUSHI 20
     POP  r2    ; r2 = N
     PUSHI 0

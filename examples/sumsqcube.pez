@@ -1,0 +1,49 @@
+; sum for n=1..100: add n^2 if n is even, n^3 if n is odd
+main:
+    PUSHI 0
+    POP  r0        ; r0 = sum
+    PUSHI 1
+    POP  r1        ; r1 = n
+loop:
+    PUSHI 100
+    PUSH r1
+    CMP
+    JIGZ end        ; if n > 100, done
+
+    PUSHI 2
+    PUSH r1
+    REM
+    JIEZ iseven     ; if n % 2 == 0, even
+
+    CALL cube       ; odd: r2 = n^3
+    JMP  accumulate
+iseven:
+    CALL square     ; even: r2 = n^2
+accumulate:
+    PUSH r0
+    PUSH r2
+    ADD
+    POP  r0         ; sum += r2
+
+    PUSHI 1
+    PUSH r1
+    ADD
+    POP  r1         ; n++
+    JMP  loop
+end:
+    HALT
+
+square:
+    PUSH r1
+    PUSH r1
+    MUL
+    POP  r2         ; r2 = n * n
+    RET
+
+cube:
+    CALL square     ; r2 = n * n
+    PUSH r2
+    PUSH r1
+    MUL
+    POP  r2         ; r2 = (n * n) * n
+    RET
