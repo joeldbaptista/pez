@@ -14,8 +14,11 @@ programs like iterative Fibonacci, nothing more.
   lives.
 - No I/O during execution. The VM writes the final register/stack state to
   `out`; results are read out of a register.
-- No function calls. Programs are flat sequences of instructions with labels
-  and conditional jumps, no `CALL`/`RET`.
+- Function calls via `CALL`/`RET` share the same stack `PUSH`/`POP`/
+  arithmetic use for return addresses — there is no separate call
+  stack. This means an unbalanced `PUSH`/`POP` inside a called routine
+  can corrupt its own return address; neither the assembler nor the VM
+  detects this.
 
 ## Components of the project
 
@@ -39,24 +42,27 @@ program, and `out` is a file with final state of the machine.
 2. POP r - pop the top of the stack into register r
 3. PUSHI imm - push an immediate constant onto the stack
 4. JMP label - unconditional jump
-5. CMP - pop a, pop b, push (a - b)
-6. JIEZ label - pop; jump if == 0
-7. JIGZ label - pop; jump if > 0
-8. JILZ label - pop; jump if < 0
-9. JGEZ label - pop; jump if >= 0
-10. JLEZ label - pop; jump if <= 0
-11. ADD - pop a, pop b, push (a + b)
-12. SUB - pop a, pop b, push (a - b)
-13. MUL - pop a, pop b, push (a * b)
-14. DIV - pop a, pop b, push (a / b)
-15. REM - pop a, pop b, push (a % b)
-16. HALT - stop execution
+5. CALL label - push return address, jump to label
+6. RET - pop return address, jump there
+7. CMP - pop a, pop b, push (a - b)
+8. JIEZ label - pop; jump if == 0
+9. JIGZ label - pop; jump if > 0
+10. JILZ label - pop; jump if < 0
+11. JGEZ label - pop; jump if >= 0
+12. JLEZ label - pop; jump if <= 0
+13. ADD - pop a, pop b, push (a + b)
+14. SUB - pop a, pop b, push (a - b)
+15. MUL - pop a, pop b, push (a * b)
+16. DIV - pop a, pop b, push (a / b)
+17. REM - pop a, pop b, push (a % b)
+18. HALT - stop execution
 
 ## Example: Fibonacci
 
 Computes fib(10) into r0.
 
 ```
+main:
     PUSHI 10
     POP  r2    ; r2 = N
     PUSHI 0
